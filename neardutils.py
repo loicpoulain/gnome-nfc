@@ -203,6 +203,9 @@ class Adapter(object):
 			return;
 		self.props.Set(ADAPTER_INTERFACE, 'Powered', dbus.Boolean(0))
 
+	def get_mode(self):
+		return self.props.Get(ADAPTER_INTERFACE, 'Mode')
+
 	def print_dbg(self, msg):
 		print '[A]' + self.path + ': ' + msg
 		
