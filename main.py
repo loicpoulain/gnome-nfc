@@ -11,21 +11,18 @@ from dbus.mainloop.glib import DBusGMainLoop
 
 NFCINDICATOR_ID = 'nfcindicator'
 
-class NfcApplet(object):
-	def update(self):
-		update()
-
 def main():
 	global a, indicator
-	a = nfc(NfcApplet()).adapters[0]
+	a = nfc(update).adapters[0]
 	indicator = appindicator.Indicator.new(NFCINDICATOR_ID, os.path.abspath('icon.png'), appindicator.IndicatorCategory.SYSTEM_SERVICES)
 	indicator.set_status(appindicator.IndicatorStatus.ACTIVE)
 	indicator.set_menu(build_menu())
 	notify.init(NFCINDICATOR_ID)
 	gtk.main()
 
-def update():
-	icon_update()
+def update(evt, arg):
+	#icon_update()
+	print 'update'
 
 def quit(_):
 	print 'EXIT'

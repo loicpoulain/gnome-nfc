@@ -21,19 +21,26 @@ bus = dbus.SystemBus()
 manager = dbus.Interface(bus.get_object(NEARD_BUS, "/"),
 						 "org.freedesktop.DBus.ObjectManager")
 
-def print_dbg(msg):
-	print msg
+EVT_ADD_ADAPTER	= 0x01
+EVT_DEL_ADAPTER	= 0x02
+EVT_CHG_ADAPTER = 0x03
+EVT_ADD_TAG		= 0x04
+EVT_DEL_TAG		= 0x05
+EVT_CHG_TAG		= 0x06
+EVT_ADD_RECORD	= 0x07
+EVT_DEL_RECORD	= 0x08
+EVT_CHG_RECORD	= 0x09
 
 class nfc(object):
-	def __init__(self, observer=None):
+	def __init__(self, listener=None):
 		self.path = '/org/neard'
 		self.adapters = []
-		self.observers = []
-		self.init(observer)
+		self.listeners = []
+		self.init(listener)
 
-	def init(self, observer=None):
-		if observer is not None:
-			self.observers.append(observer)
+	def init(self, listener=None):
+		if listener is not None:
+			self.listeners.append(listener)
 		self.populate_adapters()
 		bus.add_signal_receiver(self.dbus_intf_added,
 								bus_name=NEARD_BUS,
@@ -45,14 +52,17 @@ class nfc(object):
 								signal_name="InterfacesRemoved")
 
 	def add_adapter(self, path):
-		print_dbg('Adding Adapter ' + path)
-		self.adapters.append(Adapter(path))
+		self.print_dbg('Adding Adapter ' + path)
+		a = Adapter(path, self.notify)
+		self.adapters.append(a)
+		self.notify(EVT_ADD_ADAPTER, a)
 
 	def remove_adapter(self, path):
 		for a in self.adapters:
 			if a.path == path:
 				self.print_dbg('Removing Adapter ' + path)
 				self.adapters.remove(a)
+				self.notify(EVT_DEL_ADAPTER, a)
 
 	def populate_adapters(self):
 		for path, interfaces in manager.GetManagedObjects().iteritems():
@@ -66,24 +76,20 @@ class nfc(object):
 		for iface, props in interfaces.iteritems():
 			if iface == ADAPTER_INTERFACE:
 				self.add_adapter(path)
-				self.notify()
 				continue
 			for a in self.adapters:
 				if a.path in path:
-					if a.dbus_intf_added(path, iface):
-						self.notify()
+					a.dbus_intf_added(path, iface)
 					continue
 
 	def dbus_intf_removed(self, path, interfaces):
 		for iface in interfaces:
 			if iface == ADAPTER_INTERFACE:
 				self.remove_adapter(path)
-				self.notify()
 				continue
 			for a in self.adapters:
 				if a.path in path:
-					if a.dbus_intf_removed(path, iface):
-						self.notify()
+					a.dbus_intf_removed(path, iface)
 					continue
 
 	def register_change_listener(self, cb):
@@ -92,12 +98,12 @@ class nfc(object):
 	def print_dbg(self, msg):
 		print '[N]' + self.path + ': ' + msg
 
-	def notify(self):
-		for o in self.observers:
-			o.update()
+	def notify(self, evt, arg):
+		for l in self.listeners:
+			l(evt, arg)
 
 class Adapter(object):
-	def __init__(self, path):
+	def __init__(self, path, notifier=None):
 		self.path = path
 		self.tags = []
 		self.adapter = dbus.Interface(bus.get_object(NEARD_BUS, path),
@@ -106,23 +112,30 @@ class Adapter(object):
 									PROP_INTERFACE)
 		self.props.connect_to_signal("PropertiesChanged",
 									 self.dbus_props_changed)
+		self.notifier = notifier
 		self.init()
 
 	def init(self):
 		self.dbus_props_changed(ADAPTER_INTERFACE,
 								self.props.GetAll(ADAPTER_INTERFACE),
-								self.props.GetAll(ADAPTER_INTERFACE))
+								self.props.GetAll(ADAPTER_INTERFACE),
+								True)
 		self.populate_tags()
 
 	def add_tag(self, path):
 		self.print_dbg('Adding Tag ' + path)
-		self.tags.append(Tag(path))
+		tag = Tag(path, self.notifier)
+		self.tags.append(tag)
+		if self.notifier is not None:
+			self.notifier(EVT_ADD_TAG, tag)
 
 	def remove_tag(self, path):
 		for t in self.tags:
 			if t.path == path:
 				self.print_dbg('Removing Tag ' + path)
 				self.tags.remove(t)
+				if self.notifier is not None:
+					self.notifier(EVT_DEL_TAG, t)
 
 	def populate_tags(self):
 		for path, interfaces in manager.GetManagedObjects().iteritems():
@@ -150,9 +163,11 @@ class Adapter(object):
 				return t.dbus_intf_removed(path, iface)
 		return False
 
-	def dbus_props_changed(self, iface, changed, invalided):
+	def dbus_props_changed(self, iface, changed, invalided, silent=False):
 		for name, val in changed.iteritems():
 			self.print_dbg(name + ' = ' + str(val))
+		if self.notifier is not None and not silent:
+			self.notifier(EVT_CHG_ADAPTER, self)
 
 	def is_polling(self):
 		if self.props.Get(ADAPTER_INTERFACE, 'Polling') == dbus.Boolean(1):
@@ -192,7 +207,7 @@ class Adapter(object):
 		print '[A]' + self.path + ': ' + msg
 		
 class Tag(object):
-	def __init__(self, path):
+	def __init__(self, path, notifier=None):
 		self.path = path
 		self.records = []
 		self.tag = dbus.Interface(bus.get_object(NEARD_BUS, path),
@@ -201,23 +216,29 @@ class Tag(object):
 									PROP_INTERFACE)
 		self.props.connect_to_signal("PropertiesChanged",
 									 self.dbus_props_changed)
+		self.notifier = notifier
 		self.init()
 
 	def init(self):
 		self.dbus_props_changed(TAG_INTERFACE,
 								self.props.GetAll(TAG_INTERFACE),
-								self.props.GetAll(TAG_INTERFACE))
+								self.props.GetAll(TAG_INTERFACE), True)
 		self.populate_records()
 
 	def add_record(self, path):
 		self.print_dbg('Adding Record ' + path)
-		self.records.append(Record(path))
+		record = Record(path, self.notifier)
+		self.records.append(record)
+		if self.notifier is not None:
+			self.notifier(EVT_ADD_RECORD, record)
 
 	def remove_record(self, path):
 		for r in self.records:
 			if r.path == path:
 				self.print_dbg('Removing Record ' + path)
 				self.records.remove(r)
+				if self.notifier is not None:
+					self.notifier(EVT_DEL_RECORD, r)
 	
 	def populate_records(self):
 		for path, interfaces in manager.GetManagedObjects().iteritems():
@@ -239,9 +260,11 @@ class Tag(object):
 			return True
 		return False
 
-	def dbus_props_changed(self, iface, changed, invalided):
+	def dbus_props_changed(self, iface, changed, invalided, silent=False):
 		for name, val in changed.iteritems():
 			self.print_dbg(name + ' = ' + str(val))
+		if self.notifier is not None and not silent:
+			self.notifier(EVT_CHG_TAG, self)
 
 	def print_dbg(self, msg):
 		print '[T]' + self.path + ': ' + msg
@@ -255,7 +278,7 @@ class Tag(object):
 		self.write_uri(email, 'mailto')
 
 class Record(object):
-	def __init__(self, path):
+	def __init__(self, path, notifier=None):
 		self.path = path
 		self.record = dbus.Interface(bus.get_object(NEARD_BUS, path),
 									 RECORD_INTERFACE)
@@ -263,16 +286,20 @@ class Record(object):
 									PROP_INTERFACE)
 		self.props.connect_to_signal("PropertiesChanged",
 									 self.dbus_props_changed)
+		self.notifier = notifier
 		self.init()
 	
 	def init(self):
 		self.dbus_props_changed(RECORD_INTERFACE,
 								self.props.GetAll(RECORD_INTERFACE),
-								self.props.GetAll(RECORD_INTERFACE))
+								self.props.GetAll(RECORD_INTERFACE),
+								True)
 
-	def dbus_props_changed(self, iface, changed, invalided):
+	def dbus_props_changed(self, iface, changed, invalided, silent=False):
 		for name, val in changed.iteritems():
 			self.print_dbg(name + ' = ' + str(val))
+		if self.notifier is not None and not silent:
+			self.notifier(EVT_CHG_RECORD, self)
 
 	def print_dbg(self, msg):
 		print '[R]' + self.path + ': ' + msg
