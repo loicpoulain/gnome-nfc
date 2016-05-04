@@ -21,6 +21,7 @@ class NfcApplet(object):
 		self.indicator = appindicator.Indicator.new(NFCINDICATOR_ID,
 							    ICON_DISABLED,
 							    appindicator.IndicatorCategory.SYSTEM_SERVICES)
+		self.notifier = None
 		self.init()
 
 	def init(self):
@@ -55,6 +56,10 @@ class NfcApplet(object):
 		if (evt == EVT_CHG_ADAPTER):
 			if (self.adapter == arg):
 				self.update_adapter()
+		if (evt == EVT_ADD_TAG):
+			self.notifyEvent('TAG Detected ' + arg.path)
+		if (evt == EVT_DEL_TAG):
+			self.notifyEvent('TAG Removed ' + arg.path)
 
 	def update_adapter(self):
 		if self.adapter.is_polling():
@@ -62,6 +67,14 @@ class NfcApplet(object):
 		else:
 			self.initiator.set_active(False)
 			self.indicator.set_icon(ICON_DISABLED)
+
+	def notifyEvent(self, txt):
+		if self.notifier is None:
+			self.notifier = notify.Notification.new(txt)
+			self.notifier.set_timeout(2000)
+		else:
+			self.notifier.update(txt)
+		self.notifier.show()
 
 	def quit(self, _):
 		self.adapter.tags[0].write_email('loic.poulain@gmail.com')
