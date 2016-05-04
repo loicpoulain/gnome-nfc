@@ -19,19 +19,19 @@ MODE_INVALID =	4
 DBusGMainLoop(set_as_default=True)
 bus = dbus.SystemBus()
 manager = dbus.Interface(bus.get_object(NEARD_BUS, "/"),
-						 "org.freedesktop.DBus.ObjectManager")
+			"org.freedesktop.DBus.ObjectManager")
 
 EVT_ADD_ADAPTER	= 0x01
 EVT_DEL_ADAPTER	= 0x02
 EVT_CHG_ADAPTER = 0x03
-EVT_ADD_TAG		= 0x04
-EVT_DEL_TAG		= 0x05
-EVT_CHG_TAG		= 0x06
+EVT_ADD_TAG	= 0x04
+EVT_DEL_TAG	= 0x05
+EVT_CHG_TAG	= 0x06
 EVT_ADD_RECORD	= 0x07
 EVT_DEL_RECORD	= 0x08
 EVT_CHG_RECORD	= 0x09
 
-class nfc(object):
+class Nfc(object):
 	def __init__(self, listener=None):
 		self.path = '/org/neard'
 		self.adapters = []
@@ -43,13 +43,13 @@ class nfc(object):
 			self.listeners.append(listener)
 		self.populate_adapters()
 		bus.add_signal_receiver(self.dbus_intf_added,
-								bus_name=NEARD_BUS,
-								dbus_interface=OBJMANAGER_INTERFACE,
-								signal_name="InterfacesAdded")
+					bus_name=NEARD_BUS,
+					dbus_interface=OBJMANAGER_INTERFACE,
+					signal_name="InterfacesAdded")
 		bus.add_signal_receiver(self.dbus_intf_removed,
-								bus_name=NEARD_BUS,
-								dbus_interface=OBJMANAGER_INTERFACE,
-								signal_name="InterfacesRemoved")
+					bus_name=NEARD_BUS,
+					dbus_interface=OBJMANAGER_INTERFACE,
+					signal_name="InterfacesRemoved")
 
 	def add_adapter(self, path):
 		self.print_dbg('Adding Adapter ' + path)
@@ -107,19 +107,19 @@ class Adapter(object):
 		self.path = path
 		self.tags = []
 		self.adapter = dbus.Interface(bus.get_object(NEARD_BUS, path),
-									  ADAPTER_INTERFACE)
+					      ADAPTER_INTERFACE)
 		self.props = dbus.Interface(bus.get_object(NEARD_BUS, path),
-									PROP_INTERFACE)
+					    PROP_INTERFACE)
 		self.props.connect_to_signal("PropertiesChanged",
-									 self.dbus_props_changed)
+					     self.dbus_props_changed)
 		self.notifier = notifier
 		self.init()
 
 	def init(self):
 		self.dbus_props_changed(ADAPTER_INTERFACE,
-								self.props.GetAll(ADAPTER_INTERFACE),
-								self.props.GetAll(ADAPTER_INTERFACE),
-								True)
+					self.props.GetAll(ADAPTER_INTERFACE),
+					self.props.GetAll(ADAPTER_INTERFACE),
+					True)
 		self.populate_tags()
 
 	def add_tag(self, path):
@@ -214,18 +214,18 @@ class Tag(object):
 		self.path = path
 		self.records = []
 		self.tag = dbus.Interface(bus.get_object(NEARD_BUS, path),
-								  TAG_INTERFACE)
+					 TAG_INTERFACE)
 		self.props = dbus.Interface(bus.get_object(NEARD_BUS, path),
-									PROP_INTERFACE)
+					    PROP_INTERFACE)
 		self.props.connect_to_signal("PropertiesChanged",
-									 self.dbus_props_changed)
+					     self.dbus_props_changed)
 		self.notifier = notifier
 		self.init()
 
 	def init(self):
 		self.dbus_props_changed(TAG_INTERFACE,
-								self.props.GetAll(TAG_INTERFACE),
-								self.props.GetAll(TAG_INTERFACE), True)
+					self.props.GetAll(TAG_INTERFACE),
+					self.props.GetAll(TAG_INTERFACE), True)
 		self.populate_records()
 
 	def add_record(self, path):
@@ -284,19 +284,19 @@ class Record(object):
 	def __init__(self, path, notifier=None):
 		self.path = path
 		self.record = dbus.Interface(bus.get_object(NEARD_BUS, path),
-									 RECORD_INTERFACE)
+					     RECORD_INTERFACE)
 		self.props = dbus.Interface(bus.get_object(NEARD_BUS, path),
-									PROP_INTERFACE)
+					    PROP_INTERFACE)
 		self.props.connect_to_signal("PropertiesChanged",
-									 self.dbus_props_changed)
+					     self.dbus_props_changed)
 		self.notifier = notifier
 		self.init()
 	
 	def init(self):
 		self.dbus_props_changed(RECORD_INTERFACE,
-								self.props.GetAll(RECORD_INTERFACE),
-								self.props.GetAll(RECORD_INTERFACE),
-								True)
+					self.props.GetAll(RECORD_INTERFACE),
+					self.props.GetAll(RECORD_INTERFACE),
+					True)
 
 	def dbus_props_changed(self, iface, changed, invalided, silent=False):
 		for name, val in changed.iteritems():
