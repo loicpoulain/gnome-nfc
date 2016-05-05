@@ -84,7 +84,8 @@ class NfcApplet(object):
 		self.menu.show_all()
 
 	def quit(self, _):
-		#self.adapter.tags[0].write_email('loic.poulain@gmail.com')
+		self.adapter.stop_poll()
+		self.adapter.power_off()
 		notify.uninit()
 		gtk.main_quit()
 
