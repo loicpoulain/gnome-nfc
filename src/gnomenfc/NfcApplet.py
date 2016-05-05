@@ -58,10 +58,11 @@ class NfcApplet(object):
 			if (self.adapter == arg):
 				self.update_adapter()
 		if (evt == EVT_ADD_TAG):
-			self.notifyEvent('TAG Detected ' + arg.path)
+			self.notifyEvent('TAG Detected ' + os.path.basename(arg.path))
 			self.add_tag(arg)
 		if (evt == EVT_DEL_TAG):
-			self.notifyEvent('TAG Removed ' + arg.path)
+			self.notifyEvent('TAG Removed ' + os.path.basename(arg.path))
+			self.remove_tag(arg)
 
 	def update_adapter(self):
 		if self.adapter.is_polling():
@@ -79,9 +80,14 @@ class NfcApplet(object):
 		self.notifier.show()
 
 	def add_tag(self, tag):
-		tag = gtk.MenuItem(tag.path)
+		tag = gtk.MenuItem(os.path.basename(tag.path))
 		self.menu.append(tag)
 		self.menu.show_all()
+
+	def remove_tag(self, tag):
+		for c in self.menu.get_children():
+			if c.get_label() in tag.path:
+				self.menu.remove(c)
 
 	def quit(self, _):
 		self.adapter.stop_poll()
