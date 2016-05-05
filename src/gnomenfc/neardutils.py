@@ -32,7 +32,8 @@ EVT_DEL_RECORD	= 0x08
 EVT_CHG_RECORD	= 0x09
 
 class Nfc(object):
-	def __init__(self, listener=None):
+	def __init__(self, listener=None, debug=False):
+		self.debug = debug
 		self.path = '/org/neard'
 		self.adapters = []
 		self.listeners = []
@@ -53,7 +54,7 @@ class Nfc(object):
 
 	def add_adapter(self, path):
 		self.print_dbg('Adding Adapter ' + path)
-		a = Adapter(path, self.notify)
+		a = Adapter(path, self.notify, self.debug)
 		self.adapters.append(a)
 		self.notify(EVT_ADD_ADAPTER, a)
 
@@ -96,15 +97,17 @@ class Nfc(object):
 		self.listeners.append(cb)
 		
 	def print_dbg(self, msg):
-		print '[N]' + self.path + ': ' + msg
+		if self.debug:
+			print '[N]' + self.path + ': ' + msg
 
 	def notify(self, evt, arg):
 		for l in self.listeners:
 			l(evt, arg)
 
 class Adapter(object):
-	def __init__(self, path, notifier=None):
+	def __init__(self, path, notifier=None, debug=False):
 		self.path = path
+		self.debug = debug
 		self.tags = []
 		self.adapter = dbus.Interface(bus.get_object(NEARD_BUS, path),
 					      ADAPTER_INTERFACE)
@@ -124,7 +127,7 @@ class Adapter(object):
 
 	def add_tag(self, path):
 		self.print_dbg('Adding Tag ' + path)
-		tag = Tag(path, self.notifier)
+		tag = Tag(path, self.notifier, self.debug)
 		self.tags.append(tag)
 		if self.notifier is not None:
 			self.notifier(EVT_ADD_TAG, tag)
@@ -207,11 +210,13 @@ class Adapter(object):
 		return self.props.Get(ADAPTER_INTERFACE, 'Mode')
 
 	def print_dbg(self, msg):
-		print '[A]' + self.path + ': ' + msg
+		if self.debug:
+			print '[A]' + self.path + ': ' + msg
 		
 class Tag(object):
-	def __init__(self, path, notifier=None):
+	def __init__(self, path, notifier=None, debug=False):
 		self.path = path
+		self.debug = debug
 		self.records = []
 		self.tag = dbus.Interface(bus.get_object(NEARD_BUS, path),
 					 TAG_INTERFACE)
@@ -230,7 +235,7 @@ class Tag(object):
 
 	def add_record(self, path):
 		self.print_dbg('Adding Record ' + path)
-		record = Record(path, self.notifier)
+		record = Record(path, self.notifier, self.debug)
 		self.records.append(record)
 		if self.notifier is not None:
 			self.notifier(EVT_ADD_RECORD, record)
@@ -270,7 +275,8 @@ class Tag(object):
 			self.notifier(EVT_CHG_TAG, self)
 
 	def print_dbg(self, msg):
-		print '[T]' + self.path + ': ' + msg
+		if self.debug:
+			print '[T]' + self.path + ': ' + msg
 
 	def write_uri(self, URI, prefix=None):
 		if prefix is not None:
@@ -281,8 +287,9 @@ class Tag(object):
 		self.write_uri(email, 'mailto')
 
 class Record(object):
-	def __init__(self, path, notifier=None):
+	def __init__(self, path, notifier=None, debug=False):
 		self.path = path
+		self.debug = debug
 		self.record = dbus.Interface(bus.get_object(NEARD_BUS, path),
 					     RECORD_INTERFACE)
 		self.props = dbus.Interface(bus.get_object(NEARD_BUS, path),
@@ -305,5 +312,6 @@ class Record(object):
 			self.notifier(EVT_CHG_RECORD, self)
 
 	def print_dbg(self, msg):
-		print '[R]' + self.path + ': ' + msg
+		if self.debug:
+			print '[R]' + self.path + ': ' + msg
 	

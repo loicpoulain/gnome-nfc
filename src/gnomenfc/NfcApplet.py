@@ -22,6 +22,7 @@ class NfcApplet(object):
 							    ICON_DISABLED,
 							    appindicator.IndicatorCategory.SYSTEM_SERVICES)
 		self.notifier = None
+		self.menu = None
 		self.init()
 
 	def init(self):
@@ -31,20 +32,20 @@ class NfcApplet(object):
 		self.update_adapter()
 
 	def build_menu(self):
-		menu = gtk.Menu()
+		self.menu = gtk.Menu()
 
 		self.initiator = gtk.CheckMenuItem('Initiator')
 		self.initiator.connect('activate', self.initiator_cb)
 		self.initiator.set_draw_as_radio(True)
-		menu.append(self.initiator)
+		self.menu.append(self.initiator)
 
 		item_quit = gtk.MenuItem('Quit')
 		item_quit.connect('activate', self.quit)
-		menu.append(item_quit)
+		self.menu.append(item_quit)
 
-		menu.show_all()
+		self.menu.show_all()
 
-		return menu
+		return self.menu
 
 	def initiator_cb(self, check):
 		if check.get_active():
@@ -58,6 +59,7 @@ class NfcApplet(object):
 				self.update_adapter()
 		if (evt == EVT_ADD_TAG):
 			self.notifyEvent('TAG Detected ' + arg.path)
+			self.add_tag(arg)
 		if (evt == EVT_DEL_TAG):
 			self.notifyEvent('TAG Removed ' + arg.path)
 
@@ -76,8 +78,13 @@ class NfcApplet(object):
 			self.notifier.update(txt)
 		self.notifier.show()
 
+	def add_tag(self, tag):
+		tag = gtk.MenuItem(tag.path)
+		self.menu.append(tag)
+		self.menu.show_all()
+
 	def quit(self, _):
-		self.adapter.tags[0].write_email('loic.poulain@gmail.com')
+		#self.adapter.tags[0].write_email('loic.poulain@gmail.com')
 		notify.uninit()
 		gtk.main_quit()
 
