@@ -209,6 +209,9 @@ class Adapter(object):
 	def get_mode(self):
 		return self.props.Get(ADAPTER_INTERFACE, 'Mode')
 
+	def get_properties(self):
+		return self.props.GetAll(ADAPTER_INTERFACE)
+
 	def print_dbg(self, msg):
 		if self.debug:
 			print '[A]' + self.path + ': ' + msg

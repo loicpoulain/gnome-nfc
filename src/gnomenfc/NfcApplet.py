@@ -5,9 +5,11 @@ import dbus
 from neardutils import *
 from pkg_resources import *
 
-from gi.repository import Gtk as gtk
+from gi.repository import Gtk, Gdk
 from gi.repository import AppIndicator3 as appindicator
 from gi.repository import Notify as notify
+
+from AdapterPropertiesWindow import *
 
 NFCINDICATOR_ID = 'nfcindicator'
 
@@ -32,14 +34,17 @@ class NfcApplet(object):
 		self.update_adapter()
 
 	def build_menu(self):
-		self.menu = gtk.Menu()
+		self.menu = Gtk.Menu()
 
-		self.initiator = gtk.CheckMenuItem('Initiator')
+		self.initiator = Gtk.CheckMenuItem('Initiator')
 		self.initiator.connect('activate', self.initiator_cb)
-		self.initiator.set_draw_as_radio(True)
 		self.menu.append(self.initiator)
 
-		item_quit = gtk.MenuItem('Quit')
+		item_properties = Gtk.MenuItem('Properties')
+		item_properties.connect('activate', self.properties_cb)
+		self.menu.append(item_properties)
+
+		item_quit = Gtk.MenuItem('Quit')
 		item_quit.connect('activate', self.quit)
 		self.menu.append(item_quit)
 
@@ -52,6 +57,9 @@ class NfcApplet(object):
 			self.adapter.start_poll()
 		else:
 			self.adapter.stop_poll()
+
+	def properties_cb(self, _):
+		prop = AdapterPropertiesWindow(self.adapter)
 
 	def update(self, evt, arg):
 		if (evt == EVT_CHG_ADAPTER):
@@ -80,7 +88,7 @@ class NfcApplet(object):
 		self.notifier.show()
 
 	def add_tag(self, tag):
-		tag = gtk.MenuItem(os.path.basename(tag.path))
+		tag = Gtk.MenuItem(os.path.basename(tag.path))
 		self.menu.append(tag)
 		self.menu.show_all()
 
@@ -93,5 +101,5 @@ class NfcApplet(object):
 		self.adapter.stop_poll()
 		self.adapter.power_off()
 		notify.uninit()
-		gtk.main_quit()
+		Gtk.main_quit()
 
