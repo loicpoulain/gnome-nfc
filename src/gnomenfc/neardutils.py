@@ -281,6 +281,9 @@ class Tag(object):
 			return True
 		return False
 
+	def get_properties(self):
+		return self._props.GetAll(TAG_INTERFACE)
+
 	def write_uri(self, URI, prefix=None):
 		if prefix is not None:
 			URI = prefix + ':' + URI
@@ -320,4 +323,7 @@ class Record(object):
 	def _print_dbg(self, msg):
 		if self._debug:
 			print '[R]' + self.path + ': ' + msg
+
+	def get_properties(self):
+		return self._props.GetAll(RECORD_INTERFACE)
 	
