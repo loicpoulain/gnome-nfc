@@ -112,7 +112,8 @@ class Adapter(object):
 					       ADAPTER_INTERFACE)
 		self._props = dbus.Interface(bus.get_object(NEARD_BUS, path),
 					     PROP_INTERFACE)
-		self._notifier = notifier
+		self._listeners = []
+		self._listeners.append(notifier)
 		self._debug = debug
 		self._init()
 
@@ -127,18 +128,16 @@ class Adapter(object):
 
 	def _add_tag(self, path):
 		self._print_dbg('Adding Tag ' + path)
-		tag = Tag(path, self._notifier, self._debug)
+		tag = Tag(path, self._notify, self._debug)
 		self.tags.append(tag)
-		if self._notifier is not None:
-			self._notifier(EVT_ADD_TAG, tag)
+		self.notify(EVT_ADD_TAG, tag)
 
 	def _remove_tag(self, path):
 		for t in self.tags:
 			if t.path == path:
 				self._print_dbg('Removing Tag ' + path)
 				self.tags.remove(t)
-				if self._notifier is not None:
-					self._notifier(EVT_DEL_TAG, t)
+				self.notify(EVT_DEL_TAG, t)
 
 	def _populate_tags(self):
 		for path, interfaces in manager.GetManagedObjects().iteritems():
@@ -152,11 +151,15 @@ class Adapter(object):
 		if self._debug:
 			print '[A]' + self.path + ': ' + msg
 
+	def _notify(self, evt, arg):
+		for l in self._listeners:
+			l(evt, arg)
+
 	def _dbus_props_changed(self, iface, changed, invalided, silent=False):
 		for name, val in changed.iteritems():
 			self._print_dbg(name + ' = ' + str(val))
-		if self._notifier is not None and not silent:
-			self._notifier(EVT_CHG_ADAPTER, self)
+		if not silent:
+			self._notify(EVT_CHG_ADAPTER, self)
 
 	def dbus_intf_added(self, path, iface):
 		if iface == TAG_INTERFACE:
@@ -175,6 +178,12 @@ class Adapter(object):
 			if t.path in path:
 				return t.dbus_intf_removed(path, iface)
 		return False
+
+	def register_listener(self, notifier):
+		self._listeners.append(notifier)
+
+	def unregister_listener(self, notifier):
+		self._listeners.remove(notifier)
 
 	def is_polling(self):
 		if self._props.Get(ADAPTER_INTERFACE, 'Polling') == dbus.Boolean(1):
