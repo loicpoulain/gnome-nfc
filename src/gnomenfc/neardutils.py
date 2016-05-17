@@ -130,14 +130,14 @@ class Adapter(object):
 		self._print_dbg('Adding Tag ' + path)
 		tag = Tag(path, self._notify, self._debug)
 		self.tags.append(tag)
-		self.notify(EVT_ADD_TAG, tag)
+		self._notify(EVT_ADD_TAG, tag)
 
 	def _remove_tag(self, path):
 		for t in self.tags:
 			if t.path == path:
 				self._print_dbg('Removing Tag ' + path)
 				self.tags.remove(t)
-				self.notify(EVT_DEL_TAG, t)
+				self._notify(EVT_DEL_TAG, t)
 
 	def _populate_tags(self):
 		for path, interfaces in manager.GetManagedObjects().iteritems():
@@ -264,7 +264,7 @@ class Tag(object):
 		for name, val in changed.iteritems():
 			self._print_dbg(name + ' = ' + str(val))
 		if self._notifier is not None and not silent:
-			self.notifier(EVT_CHG_TAG, self)
+			self._notifier(EVT_CHG_TAG, self)
 
 	def _print_dbg(self, msg):
 		if self._debug:
