@@ -195,6 +195,9 @@ class Adapter(object):
 			return True
 		return False
 
+	def get_protos(self):
+		return self._props.Get(ADAPTER_INTERFACE, 'Protocols')
+
 	def start_poll(self):
 		if not self.is_powered():
 			self.power_on()
