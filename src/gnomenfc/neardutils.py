@@ -9,7 +9,7 @@ TAG_INTERFACE = NEARD_BUS + ".Tag"
 RECORD_INTERFACE = NEARD_BUS + ".Record"
 OBJMANAGER_INTERFACE = "org.freedesktop.DBus.ObjectManager"
 PROP_INTERFACE = "org.freedesktop.DBus.Properties"
- 
+
 MODE_IDLE =	0
 MODE_INITIATOR =	1
 MODE_TARGET	=	2
@@ -115,6 +115,7 @@ class Adapter(object):
 		self._listeners = []
 		self._listeners.append(notifier)
 		self._debug = debug
+		self._polling_mode = None
 		self._init()
 
 	def _init(self):
@@ -169,7 +170,7 @@ class Adapter(object):
 			if t.path in path:
 				return t.dbus_intf_added(path, iface)
 		return False
-		
+
 	def dbus_intf_removed(self, path, iface):
 		if iface == TAG_INTERFACE:
 			self._remove_tag(path)
@@ -190,6 +191,9 @@ class Adapter(object):
 			return True
 		return False
 
+	def get_polling_mode(self):
+		return self._polling_mode
+
 	def is_powered(self):
 		if self._props.Get(ADAPTER_INTERFACE, 'Powered') == dbus.Boolean(1):
 			return True
@@ -198,15 +202,17 @@ class Adapter(object):
 	def get_protos(self):
 		return self._props.Get(ADAPTER_INTERFACE, 'Protocols')
 
-	def start_poll(self):
+	def start_poll(self, mode='Initiator'):
 		if not self.is_powered():
 			self.power_on()
 		if self.is_polling():
 			self.stop_poll()
-		self._print_dbg('Starting poll')
-		self._adapter.StartPollLoop('Initiator')
+		self._print_dbg('Starting poll mode ' + mode)
+		self._polling_mode = mode
+		self._adapter.StartPollLoop(mode)
 
 	def stop_poll(self):
+		self._polling_mode = None
 		if not self.is_polling():
 			return
 		self._print_dbg('Stopping poll')
@@ -216,7 +222,7 @@ class Adapter(object):
 		if self.is_powered():
 			return;
 		self._props.Set(ADAPTER_INTERFACE, 'Powered', dbus.Boolean(1))
-	
+
 	def power_off(self):
 		if not self.is_powered():
 			return;
@@ -227,7 +233,7 @@ class Adapter(object):
 
 	def get_properties(self):
 		return self._props.GetAll(ADAPTER_INTERFACE)
-		
+
 class Tag(object):
 	def __init__(self, path, notifier=None, debug=False):
 		self.path = path
@@ -286,7 +292,7 @@ class Tag(object):
 			self._add_record(path)
 			return True
 		return False
-		
+
 	def dbus_intf_removed(self, path, iface):
 		if iface == RECORD_INTERFACE:
 			self._remove_record(path)
@@ -314,7 +320,7 @@ class Record(object):
 					     PROP_INTERFACE)
 		self._notifier = notifier
 		self._init()
-	
+
 	def _init(self):
 		self._props.connect_to_signal("PropertiesChanged",
 					      self._dbus_props_changed)
@@ -338,4 +344,3 @@ class Record(object):
 
 	def get_properties(self):
 		return self._props.GetAll(RECORD_INTERFACE)
-	

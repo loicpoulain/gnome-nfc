@@ -102,4 +102,3 @@ class NfcApplet(object):
 		self.adapter.power_off()
 		notify.uninit()
 		Gtk.main_quit()
-

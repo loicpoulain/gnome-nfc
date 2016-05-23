@@ -8,3 +8,6 @@ gnomenfc_PYTHON = \
 	__init__.py
 
 gnomenfcdir = $(pythondir)/gnomenfc
+
+install-data-local:
+		$(INSTALL_DATA) settings.ui $(gnomenfcdir);
