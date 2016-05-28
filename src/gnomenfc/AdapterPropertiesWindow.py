@@ -32,6 +32,18 @@ class AdapterPropertiesWindow(object):
 		self._check_target = builder.get_object("check_target")
 		self._check_target.connect('notify::active', self._check_cb)
 
+		treeview_tag = builder.get_object("treeview_tag")
+		self._list_tag = Gtk.ListStore(str, str, str, str)
+		treeview_tag.set_model(self._list_tag)
+		column = Gtk.TreeViewColumn('Tag', Gtk.CellRendererText(), text=0)
+		treeview_tag.append_column(column)
+		column = Gtk.TreeViewColumn('Protocol', Gtk.CellRendererText(), text=1)
+		treeview_tag.append_column(column)
+		column = Gtk.TreeViewColumn('Type', Gtk.CellRendererText(), text=2)
+		treeview_tag.append_column(column)
+		column = Gtk.TreeViewColumn('ReadOnly', Gtk.CellRendererText(), text=3)
+		treeview_tag.append_column(column)
+
 		box = builder.get_object("box_properties")
 		box.show()
 		self._window.add(box)
@@ -75,5 +87,13 @@ class AdapterPropertiesWindow(object):
 		self._check_target.set_active(mode is 'Target' or mode is 'Both')
 
 		self._spin_polling.set_visible(self.adapter.is_polling())
+
+		self._list_tag.clear()
+		for t in self.adapter.tags:
+			self._list_tag.append([os.path.basename(t.path),
+					       t.get_protocol(),
+					       t.get_type(),
+					       str(t.is_read_only())
+					      ])
 
 		self._updating = False
