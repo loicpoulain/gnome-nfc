@@ -226,6 +226,7 @@ class Adapter(object):
 	def power_off(self):
 		if not self.is_powered():
 			return;
+		self.stop_poll()
 		self._props.Set(ADAPTER_INTERFACE, 'Powered', dbus.Boolean(0))
 
 	def get_mode(self):
@@ -298,6 +299,15 @@ class Tag(object):
 			self._remove_record(path)
 			return True
 		return False
+
+	def get_protocol(self):
+		return str(self._props.Get(TAG_INTERFACE, 'Protocol'))
+
+	def get_type(self):
+		return str(self._props.Get(TAG_INTERFACE, 'Type'))
+
+	def is_read_only(self):
+		return self._props.Get(TAG_INTERFACE, 'ReadOnly')
 
 	def get_properties(self):
 		return self._props.GetAll(TAG_INTERFACE)
