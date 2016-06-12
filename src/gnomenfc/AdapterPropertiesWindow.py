@@ -33,7 +33,7 @@ class AdapterPropertiesWindow(object):
 		self._check_target.connect('notify::active', self._check_cb)
 
 		treeview_tag = builder.get_object("treeview_tag")
-		self._list_tag = Gtk.ListStore(str, str, str, str)
+		self._list_tag = Gtk.TreeStore(str, str, str, str)
 		treeview_tag.set_model(self._list_tag)
 		column = Gtk.TreeViewColumn('Tag', Gtk.CellRendererText(), text=0)
 		treeview_tag.append_column(column)
@@ -90,10 +90,19 @@ class AdapterPropertiesWindow(object):
 
 		self._list_tag.clear()
 		for t in self.adapter.tags:
-			self._list_tag.append([os.path.basename(t.path),
-					       t.get_protocol(),
-					       t.get_type(),
-					       str(t.is_read_only())
-					      ])
+			i0 = self._list_tag.append(None,
+						   [os.path.basename(t.path),
+						   t.get_protocol(),
+						   t.get_type(),
+						   str(t.is_read_only())])
+			for r in t.records:
+				i1 = self._list_tag.append(i0,
+							   [os.path.basename(r.path),
+							   None, None, None])
+				for k, v in r.get_properties().iteritems():
+					try:
+						self._list_tag.append(i1, [str(k), '= ' + str(v), None, None])
+					except UnicodeEncodeError, e:
+						print 'e'
 
 		self._updating = False
