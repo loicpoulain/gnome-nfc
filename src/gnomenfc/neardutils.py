@@ -159,6 +159,8 @@ class Adapter(object):
 	def _dbus_props_changed(self, iface, changed, invalided, silent=False):
 		for name, val in changed.iteritems():
 			self._print_dbg(name + ' = ' + str(val))
+			if name == 'Polling' and val == dbus.Boolean(False):
+				self._polling_mode = None
 		if not silent:
 			self._notify(EVT_CHG_ADAPTER, self)
 
@@ -187,20 +189,31 @@ class Adapter(object):
 		self._listeners.remove(notifier)
 
 	def is_polling(self):
-		if self._props.Get(ADAPTER_INTERFACE, 'Polling') == dbus.Boolean(1):
-			return True
+		try:
+			p = self._props.Get(ADAPTER_INTERFACE, 'Polling')
+			if p == dbus.Boolean(1):
+				return True
+		except dbus.DBusException, error:
+			print "%s: %s" % (error._dbus_error_name, error.message)
 		return False
 
 	def get_polling_mode(self):
 		return self._polling_mode
 
 	def is_powered(self):
-		if self._props.Get(ADAPTER_INTERFACE, 'Powered') == dbus.Boolean(1):
-			return True
+		try:
+			p = self._props.Get(ADAPTER_INTERFACE, 'Powered')
+			if p == dbus.Boolean(1):
+				return True
+		except dbus.DBusException, error:
+			print "%s: %s" % (error._dbus_error_name, error.message)
 		return False
 
 	def get_protos(self):
-		return self._props.Get(ADAPTER_INTERFACE, 'Protocols')
+		try:
+			return self._props.Get(ADAPTER_INTERFACE, 'Protocols')
+		except dbus.DBusException, error:
+			print "%s: %s" % (error._dbus_error_name, error.message)
 
 	def start_poll(self, mode='Initiator'):
 		if not self.is_powered():
@@ -209,31 +222,51 @@ class Adapter(object):
 			self.stop_poll()
 		self._print_dbg('Starting poll mode ' + mode)
 		self._polling_mode = mode
-		self._adapter.StartPollLoop(mode)
+		try:
+			self._adapter.StartPollLoop(mode)
+		except dbus.DBusException, error:
+			print "%s: %s" % (error._dbus_error_name, error.message)
 
 	def stop_poll(self):
 		self._polling_mode = None
 		if not self.is_polling():
 			return
 		self._print_dbg('Stopping poll')
-		self._adapter.StopPollLoop()
+		try:
+			self._adapter.StopPollLoop()
+		except dbus.DBusException, error:
+			print "%s: %s" % (error._dbus_error_name, error.message)
 
 	def power_on(self):
 		if self.is_powered():
 			return;
-		self._props.Set(ADAPTER_INTERFACE, 'Powered', dbus.Boolean(1))
+		try:
+			self._props.Set(ADAPTER_INTERFACE, 'Powered',
+					dbus.Boolean(1))
+		except dbus.DBusException, error:
+			print "%s: %s" % (error._dbus_error_name, error.message)
 
 	def power_off(self):
 		if not self.is_powered():
 			return;
 		self.stop_poll()
-		self._props.Set(ADAPTER_INTERFACE, 'Powered', dbus.Boolean(0))
+		try:
+			self._props.Set(ADAPTER_INTERFACE, 'Powered',
+					dbus.Boolean(0))
+		except dbus.DBusException, error:
+			print "%s: %s" % (error._dbus_error_name, error.message)
 
 	def get_mode(self):
-		return self._props.Get(ADAPTER_INTERFACE, 'Mode')
+		try:
+			return self._props.Get(ADAPTER_INTERFACE, 'Mode')
+		except dbus.DBusException, error:
+			print "%s: %s" % (error._dbus_error_name, error.message)
 
 	def get_properties(self):
-		return self._props.GetAll(ADAPTER_INTERFACE)
+		try:
+			return self._props.GetAll(ADAPTER_INTERFACE)
+		except dbus.DBusException, error:
+			print "%s: %s" % (error._dbus_error_name, error.message)
 
 class Tag(object):
 	def __init__(self, path, notifier=None, debug=False):
@@ -252,7 +285,8 @@ class Tag(object):
 					      self._dbus_props_changed)
 		self._dbus_props_changed(TAG_INTERFACE,
 					 self._props.GetAll(TAG_INTERFACE),
-					 self._props.GetAll(TAG_INTERFACE), True)
+					 self._props.GetAll(TAG_INTERFACE),
+					 True)
 		self._populate_records()
 
 	def _add_record(self, path):
@@ -301,21 +335,37 @@ class Tag(object):
 		return False
 
 	def get_protocol(self):
-		return str(self._props.Get(TAG_INTERFACE, 'Protocol'))
+		try:
+			return str(self._props.Get(TAG_INTERFACE, 'Protocol'))
+		except dbus.DBusException, error:
+			print "%s: %s" % (error._dbus_error_name, error.message)
 
 	def get_type(self):
-		return str(self._props.Get(TAG_INTERFACE, 'Type'))
+		try:
+			return str(self._props.Get(TAG_INTERFACE, 'Type'))
+		except dbus.DBusException, error:
+			print "%s: %s" % (error._dbus_error_name, error.message)
 
 	def is_read_only(self):
-		return self._props.Get(TAG_INTERFACE, 'ReadOnly')
+		try:
+			return self._props.Get(TAG_INTERFACE, 'ReadOnly')
+		except dbus.DBusException, error:
+			print "%s: %s" % (error._dbus_error_name, error.message)
 
 	def get_properties(self):
-		return self._props.GetAll(TAG_INTERFACE)
+		try:
+			return self._props.GetAll(TAG_INTERFACE)
+		except dbus.DBusException, error:
+			print "%s: %s" % (error._dbus_error_name, error.message)
+			return None
 
 	def write_uri(self, URI, prefix=None):
 		if prefix is not None:
 			URI = prefix + ':' + URI
-		self.tag.Write(({'Type' : 'URI', 'URI' : URI}))
+		try:
+			self.tag.Write(({'Type' : 'URI', 'URI' : URI}))
+		except dbus.DBusException, error:
+			print "%s: %s" % (error._dbus_error_name, error.message)
 
 	def write_email(self, email):
 		self.write_uri(email, 'mailto')
@@ -353,4 +403,8 @@ class Record(object):
 			print '[R]' + self.path + ': ' + msg
 
 	def get_properties(self):
-		return self._props.GetAll(RECORD_INTERFACE)
+		try:
+			return self._props.GetAll(RECORD_INTERFACE)
+		except dbus.DBusException, error:
+			print "%s: %s" % (error._dbus_error_name, error.message)
+			return None
