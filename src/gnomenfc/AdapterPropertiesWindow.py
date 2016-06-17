@@ -90,11 +90,12 @@ class AdapterPropertiesWindow(object):
 
 		self._list_tag.clear()
 		for t in self.adapter.tags:
-			i0 = self._list_tag.append(None,
-						   [os.path.basename(t.path),
-						   t.get_protocol(),
-						   t.get_type(),
-						   str(t.is_read_only())])
+			path = os.path.basename(t.path)
+			proto = t.get_protocol()
+			type = t.get_type()
+			read = 'yes' if t.is_read_only() else 'no'
+			i0 = self._list_tag.append(None, [path, proto, type,
+						   read])
 			for r in t.records:
 				i1 = self._list_tag.append(i0,
 							   [os.path.basename(r.path),
