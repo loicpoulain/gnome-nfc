@@ -36,10 +36,6 @@ class NfcApplet(object):
 	def build_menu(self):
 		self.menu = Gtk.Menu()
 
-		self.initiator = Gtk.CheckMenuItem('Initiator')
-		self.initiator.connect('activate', self.initiator_cb)
-		self.menu.append(self.initiator)
-
 		item_properties = Gtk.MenuItem('Properties')
 		item_properties.connect('activate', self.properties_cb)
 		self.menu.append(item_properties)
@@ -52,12 +48,6 @@ class NfcApplet(object):
 
 		return self.menu
 
-	def initiator_cb(self, check):
-		if check.get_active():
-			self.adapter.start_poll()
-		else:
-			self.adapter.stop_poll()
-
 	def properties_cb(self, _):
 		prop = AdapterPropertiesWindow(self.adapter)
 
@@ -67,16 +57,11 @@ class NfcApplet(object):
 				self.update_adapter()
 		if (evt == EVT_ADD_TAG):
 			self.notifyEvent('TAG Detected ' + os.path.basename(arg.path))
-			self.add_tag(arg)
-		if (evt == EVT_DEL_TAG):
-			self.notifyEvent('TAG Removed ' + os.path.basename(arg.path))
-			self.remove_tag(arg)
 
 	def update_adapter(self):
 		if self.adapter.is_polling():
 			self.indicator.set_icon(ICON_ACTIVE)
 		else:
-			self.initiator.set_active(False)
 			self.indicator.set_icon(ICON_DISABLED)
 
 	def notifyEvent(self, txt):
@@ -86,16 +71,6 @@ class NfcApplet(object):
 		else:
 			self.notifier.update(txt)
 		self.notifier.show()
-
-	def add_tag(self, tag):
-		tag = Gtk.MenuItem(os.path.basename(tag.path))
-		self.menu.append(tag)
-		self.menu.show_all()
-
-	def remove_tag(self, tag):
-		for c in self.menu.get_children():
-			if c.get_label() in tag.path:
-				self.menu.remove(c)
 
 	def quit(self, _):
 		self.adapter.stop_poll()
